@@ -1,0 +1,111 @@
+.cardContainer {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  perspective: 1000px;
+  cursor: pointer;
+  margin: 0 auto;
+  position: relative;
+  transition: min-height 0.3s ease;
+}
+
+.cardInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.cardContainer.flipped .cardInner {
+  transform: rotateY(180deg);
+}
+
+.cardFront {
+  position: absolute;
+  width: 100%;
+  height: 200px; /* FIXED: Same height for all front cards */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center content vertically */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+.cardBack {
+  position: absolute;
+  width: 100%;
+  height: auto; /* AUTO: Adjust to content */
+  min-height: 200px; /* Minimum same as front */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* CHANGED: Start from top */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+.cardFront {
+  background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.cardBack {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  color: white;
+  transform: rotateY(180deg);
+  border: 1px solid #475569;
+}
+
+/* ADDED: Ensure grid layout handles height properly */
+.cardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cardsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Optional: Add hover effects */
+.cardContainer:hover .cardInner {
+  transform: scale(1.02);
+  transition: transform 0.3s ease;
+}
+
+.cardContainer.flipped:hover .cardInner {
+  transform: scale(1.02) rotateY(180deg);
+}
+
+/* Focus styles for accessibility */
+.cardContainer:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
