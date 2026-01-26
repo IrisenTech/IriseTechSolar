@@ -121,9 +121,12 @@ interface AppointmentData {
 export const FormEnergy = () => {
   const [billingResult, setBillingResult] = useState<BillingResult | null>(null);
   const [solarResult, setSolarResult] = useState<SolarResult | null>(null);
-  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState<boolean>(false);
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [showAppointmentSection, setShowAppointmentSection] = useState<boolean>(false);
+  const [userWantsAppointment, setUserWantsAppointment] = useState<boolean | null>(null);
+  
   const DEFAULT_COST = 820;
   const ADDED_PERCENTAGE = 20;
   
@@ -226,6 +229,10 @@ export const FormEnergy = () => {
       totalArea,
       systemSizeKwp: calculoKwp
     });
+
+    // Reset appointment section visibility when new calculation is made
+    setShowAppointmentSection(false);
+    setUserWantsAppointment(null);
   };
 
   const handleReset = () => {
@@ -235,11 +242,15 @@ export const FormEnergy = () => {
     });
     setBillingResult(null);
     setSolarResult(null);
+    setShowAppointmentSection(false);
+    setUserWantsAppointment(null);
   };
 
   const handleCloseTable = () => {
     setBillingResult(null);
     setSolarResult(null);
+    setShowAppointmentSection(false);
+    setUserWantsAppointment(null);
   };
 
   // Handle file upload
@@ -475,7 +486,7 @@ export const FormEnergy = () => {
                   {/* Solar Installation Results Table */}
                   {solarResult && (
                     <div>
-                      <Accordion type="single" collapsible>
+                      <Accordion type="single" collapsible defaultValue="item-1">
                         <AccordionItem value="item-1">
                           <AccordionTrigger>
                             <h3 className="text-lg font-semibold text-lime-300 mb-4 flex items-center gap-2">
@@ -533,28 +544,69 @@ export const FormEnergy = () => {
                         </AccordionItem>
                       </Accordion>
 
-                      <Accordion type="single" collapsible>
-                        <div className="mt-4 p-4 bg-slate-800 rounded-md border border-slate-600">
-                          <AccordionItem value="item-1">
-                            <AccordionTrigger>
-                              <h4 className="font-semibold text-slate-300">Detalles del Cálculo:</h4>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <ul className="text-sm text-slate-400 space-y-1">
-                                <li>• Horas Sol Pico (HSP): {PEAK_SUN_HOURS} horas</li>
-                                <li>• Potencia por Panel: {PANEL_POWER}W</li>
-                                <li>• Dimensiones del Panel: {PANEL_LENGTH}m × {PANEL_WIDTH}m</li>
-                                <li>• Área por Panel: {(PANEL_LENGTH * PANEL_WIDTH).toFixed(2)}m²</li>
-                                <li>• Costo por kWp instalado: ${COST_PER_KWP.toLocaleString('es-ES')} COP</li>
-                              </ul>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </div>
-                      </Accordion>
-
                       <p className="text-xs text-slate-400 mt-4">
                         <strong>Nota:</strong> Estas son estimaciones aproximadas. Los valores reales pueden variar según la ubicación, condiciones técnicas y regulatorias locales. Se recomienda un estudio técnico profesional para una evaluación precisa.
                       </p>
+
+                      {/* Question with checkboxes */}
+                      {userWantsAppointment === null && (
+                        <div className="mt-8 p-6 border border-slate-600 rounded-lg bg-slate-800">
+                          <h3 className="text-lg font-semibold text-white mb-4">
+                            ¿Deseas agendar una cita con nuestros especialistas para una evaluación personalizada?
+                          </h3>
+                          
+                          <div className="flex gap-6 mt-4">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id="appointment-yes"
+                                checked={false}
+                                onChange={() => {
+                                  setUserWantsAppointment(true);
+                                  setShowAppointmentSection(true);
+                                  // Scroll to appointment section
+                                  setTimeout(() => {
+                                    document.getElementById('appointment-section')?.scrollIntoView({ 
+                                      behavior: 'smooth' 
+                                    });
+                                  }, 100);
+                                }}
+                                className="h-5 w-5 text-lime-500 rounded border-slate-600 bg-slate-700 focus:ring-lime-500 focus:ring-offset-slate-800"
+                              />
+                              <label 
+                                htmlFor="appointment-yes" 
+                                className="ml-2 text-slate-200 cursor-pointer"
+                              >
+                                Sí, quiero una cita personalizada
+                              </label>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id="appointment-no"
+                                checked={false}
+                                onChange={() => {
+                                  setUserWantsAppointment(false);
+                                  setShowAppointmentSection(false);
+                                }}
+                                className="h-5 w-5 text-red-500 rounded border-slate-600 bg-slate-700 focus:ring-red-500 focus:ring-offset-slate-800"
+                              />
+                              <label 
+                                htmlFor="appointment-no" 
+                                className="ml-2 text-slate-200 cursor-pointer"
+                              >
+                                No, gracias
+                              </label>
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-slate-400 mt-4">
+                            Una cita personalizada te permitirá obtener una evaluación exacta de tu proyecto solar 
+                            con nuestros especialistas.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -563,302 +615,286 @@ export const FormEnergy = () => {
           </Card>
         </div>
         
-        {/* Appointment Section */}
-        <div id="layout content">
-          <Card className="border-slate-500 bg-slate-900">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-200">
-                <CalendarDays className="h-5 w-5" />
-                Agenda una Cita Personalizada
-              </CardTitle>
-              <p className="text-slate-300 text-sm">
-                ¿Quieres una evaluación más detallada de tu proyecto solar? Agenda una cita con nuestros especialistas.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-lime-300 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Beneficios de agendar una cita:
-                    </h4>
-                    <ul className="text-sm text-slate-300 space-y-1">
-                      <li>• Análisis personalizado de tu consumo energético</li>
-                      <li>• Evaluación exacta de tu techo/espacio disponible</li>
-                      <li>• Cotización precisa con componentes específicos</li>
-                      <li>• Asesoría sobre incentivos y financiamiento</li>
-                      <li>• Plan de instalación y mantenimiento</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-lime-300 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Lo que necesitamos:
-                    </h4>
-                    <ul className="text-sm text-slate-300 space-y-1">
-                      <li>• Información de contacto para coordinar</li>
-                      <li>• Dirección exacta de la propiedad</li>
-                      <li>• Tu factura de energía (opcional)</li>
-                      <li>• Preferencia de fecha y hora</li>
-                      <li>• Cualquier requerimiento especial</li>
-                    </ul>
-                  </div>
+        {/* Appointment Section - Conditionally Rendered */}
+        {showAppointmentSection && (
+          <div id="appointment-section" className="mt-8">
+            <Card className="border-slate-500 bg-slate-900">
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-200">
+                    <CalendarDays className="h-5 w-5" />
+                    Agenda una Cita Personalizada
+                  </CardTitle>
+                  <p className="text-slate-300 text-sm mt-1">
+                    ¿Quieres una evaluación más detallada de tu proyecto solar? Agenda una cita con nuestros especialistas.
+                  </p>
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAppointmentSection(false)}
+                  className="text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Ocultar
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Appointment Dialog Trigger */}
+                  <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700 text-white h-12 text-lg"
+                        onClick={() => setIsAppointmentDialogOpen(true)}
+                      >
+                        <Calendar className="mr-2 h-5 w-5" />
+                        Agendar Cita de Evaluación
+                      </Button>
+                    </DialogTrigger>
+                    
+                    <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-600 text-white">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                          <CalendarDays className="h-5 w-5" />
+                          Agendar Cita de Evaluación Solar
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-300">
+                          Completa el formulario para programar una cita con nuestros especialistas. 
+                          Nos pondremos en contacto para confirmar los detalles.
+                        </DialogDescription>
+                      </DialogHeader>
 
-                {/* Appointment Dialog Trigger */}
-                <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      className="w-full bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700 text-white h-12 text-lg"
-                      onClick={() => setIsAppointmentDialogOpen(true)}
-                    >
-                      <Calendar className="mr-2 h-5 w-5" />
-                      Agendar Cita de Evaluación
-                    </Button>
-                  </DialogTrigger>
-                  
-                  <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-600 text-white">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl flex items-center gap-2">
-                        <CalendarDays className="h-5 w-5" />
-                        Agendar Cita de Evaluación Solar
-                      </DialogTitle>
-                      <DialogDescription className="text-slate-300">
-                        Completa el formulario para programar una cita con nuestros especialistas. 
-                        Nos pondremos en contacto para confirmar los detalles.
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <Form {...appointmentForm}>
-                      <form onSubmit={appointmentForm.handleSubmit(onAppointmentSubmit)} className="space-y-6">
-                        {/* Email */}
-                        <FormField
-                          control={appointmentForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-slate-200 flex items-center gap-2">
-                                <Mail className="h-4 w-4" />
-                                Email
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="tu@email.com"
-                                  className="bg-slate-800 border-slate-600 text-white"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {/* Phone */}
-                        <FormField
-                          control={appointmentForm.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-slate-200 flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                Teléfono de Contacto
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="+57 300 123 4567"
-                                  className="bg-slate-800 border-slate-600 text-white"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {/* Address with Google Maps button */}
-                        <FormField
-                          control={appointmentForm.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-slate-200 flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                Dirección de la Propiedad
-                              </FormLabel>
-                              <div className="flex gap-2">
+                      <Form {...appointmentForm}>
+                        <form onSubmit={appointmentForm.handleSubmit(onAppointmentSubmit)} className="space-y-6">
+                          {/* Email */}
+                          <FormField
+                            control={appointmentForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-slate-200 flex items-center gap-2">
+                                  <Mail className="h-4 w-4" />
+                                  Email
+                                </FormLabel>
                                 <FormControl>
                                   <Input
-                                    placeholder="Calle 123 #45-67, Ciudad"
-                                    className="bg-slate-800 border-slate-600 text-white flex-1"
+                                    placeholder="tu@email.com"
+                                    className="bg-slate-800 border-slate-600 text-white"
                                     {...field}
                                   />
                                 </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="border-slate-600"
-                                  onClick={() => field.value && openGoogleMaps(field.value)}
-                                  disabled={!field.value}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <FormDescription className="text-slate-400">
-                                Esta dirección será usada para evaluar tu ubicación en Google Maps
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        {/* File Upload */}
-                        <div className="space-y-2">
-                          <Label className="text-slate-200 flex items-center gap-2">
-                            <Upload className="h-4 w-4" />
-                            Factura de Energía (Opcional)
-                          </Label>
-                          <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
-                            <Input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={handleFileUpload}
-                              className="hidden"
-                              id="file-upload"
-                            />
-                            <Label
-                              htmlFor="file-upload"
-                              className="cursor-pointer flex flex-col items-center gap-2"
-                            >
-                              <Upload className="h-8 w-8 text-slate-400" />
-                              <span className="text-sm text-slate-300">
-                                {uploadedFile 
-                                  ? `Archivo seleccionado: ${uploadedFile.name}`
-                                  : "Arrastra o haz clic para subir tu factura"}
-                              </span>
-                              <span className="text-xs text-slate-400">
-                                PDF, JPG, PNG (Máx. 10MB)
-                              </span>
-                            </Label>
-                          </div>
-                        </div>
-
-                        {/* Appointment Date */}
-                        <FormField
-                          control={appointmentForm.control}
-                          name="appointmentDate"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                              <FormLabel className="text-slate-200 flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                Fecha Preferida para la Cita
-                              </FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className="w-full pl-3 text-left font-normal bg-slate-800 border-slate-600 hover:bg-slate-700"
-                                    >
-                                      {field.value ? (
-                                        format(field.value, "PPP", { locale: es })
-                                      ) : (
-                                        <span className="text-slate-400">Selecciona una fecha</span>
-                                      )}
-                                      <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <CalendarComponent
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(date) => 
-                                      date < getMinDate() || date < new Date()
-                                    }
-                                    initialFocus
-                                    className="bg-slate-800 text-white"
+                          {/* Phone */}
+                          <FormField
+                            control={appointmentForm.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-slate-200 flex items-center gap-2">
+                                  <Phone className="h-4 w-4" />
+                                  Teléfono de Contacto
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="+57 300 123 4567"
+                                    className="bg-slate-800 border-slate-600 text-white"
+                                    {...field}
                                   />
-                                </PopoverContent>
-                              </Popover>
-                              <FormDescription className="text-slate-400">
-                                Las citas están disponibles a partir de 7 días desde hoy
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        {/* Notes */}
-                        <FormField
-                          control={appointmentForm.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-slate-200">
-                                Notas Adicionales (Opcional)
-                              </FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Comparte cualquier información adicional o requerimientos especiales..."
-                                  className="bg-slate-800 border-slate-600 text-white min-h-[100px]"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          {/* Address with Google Maps button */}
+                          <FormField
+                            control={appointmentForm.control}
+                            name="address"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-slate-200 flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  Dirección de la Propiedad
+                                </FormLabel>
+                                <div className="flex gap-2">
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Calle 123 #45-67, Ciudad"
+                                      className="bg-slate-800 border-slate-600 text-white flex-1"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-slate-600"
+                                    onClick={() => field.value && openGoogleMaps(field.value)}
+                                    disabled={!field.value}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <FormDescription className="text-slate-400">
+                                  Esta dirección será usada para evaluar tu ubicación en Google Maps
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <DialogFooter>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsAppointmentDialogOpen(false)}
-                            className="border-slate-600 text-slate-300 hover:bg-slate-800"
-                          >
-                            Cancelar
-                          </Button>
-                          <Button 
-                            type="submit"
-                            className="bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700"
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Confirmar Cita
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                          {/* File Upload */}
+                          <div className="space-y-2">
+                            <Label className="text-slate-200 flex items-center gap-2">
+                              <Upload className="h-4 w-4" />
+                              Factura de Energía (Opcional)
+                            </Label>
+                            <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
+                              <Input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                id="file-upload"
+                              />
+                              <Label
+                                htmlFor="file-upload"
+                                className="cursor-pointer flex flex-col items-center gap-2"
+                              >
+                                <Upload className="h-8 w-8 text-slate-400" />
+                                <span className="text-sm text-slate-300">
+                                  {uploadedFile 
+                                    ? `Archivo seleccionado: ${uploadedFile.name}`
+                                    : "Arrastra o haz clic para subir tu factura"}
+                                </span>
+                                <span className="text-xs text-slate-400">
+                                  PDF, JPG, PNG (Máx. 10MB)
+                                </span>
+                              </Label>
+                            </div>
+                          </div>
 
-                {/* Appointment Counter */}
-                <div className="mt-4 p-4 bg-slate-800 rounded-lg border border-slate-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-300">Citas agendadas este mes:</p>
-                      <p className="text-2xl font-bold text-lime-300">{appointments.length}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-slate-300">Próxima cita disponible:</p>
-                      <p className="text-lg font-semibold text-white">
-                        {getMinDate().toLocaleDateString('es-ES', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
-                      </p>
+                          {/* Appointment Date */}
+                          <FormField
+                            control={appointmentForm.control}
+                            name="appointmentDate"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col">
+                                <FormLabel className="text-slate-200 flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  Fecha Preferida para la Cita
+                                </FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        className="w-full pl-3 text-left font-normal bg-slate-800 border-slate-600 hover:bg-slate-700"
+                                      >
+                                        {field.value ? (
+                                          format(field.value, "PPP", { locale: es })
+                                        ) : (
+                                          <span className="text-slate-400">Selecciona una fecha</span>
+                                        )}
+                                        <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={field.value}
+                                      onSelect={field.onChange}
+                                      disabled={(date) => 
+                                        date < getMinDate() || date < new Date()
+                                      }
+                                      initialFocus
+                                      className="bg-slate-800 text-white"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <FormDescription className="text-slate-400">
+                                  Las citas están disponibles a partir de 7 días desde hoy
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Notes */}
+                          <FormField
+                            control={appointmentForm.control}
+                            name="notes"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-slate-200">
+                                  Notas Adicionales (Opcional)
+                                </FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Comparte cualquier información adicional o requerimientos especiales..."
+                                    className="bg-slate-800 border-slate-600 text-white min-h-[100px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsAppointmentDialogOpen(false)}
+                              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button 
+                              type="submit"
+                              className="bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700"
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Confirmar Cita
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Appointment Counter */}
+                  <div className="mt-4 p-4 bg-slate-800 rounded-lg border border-slate-600">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-300">Citas agendadas este mes:</p>
+                        <p className="text-2xl font-bold text-lime-300">{appointments.length}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-slate-300">Próxima cita disponible:</p>
+                        <p className="text-lg font-semibold text-white">
+                          {getMinDate().toLocaleDateString('es-ES', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </section>
   );

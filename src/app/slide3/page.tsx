@@ -46,7 +46,7 @@ export default function Page() {
       items: [
         "Descuento de la renta hasta del 50% de valor de la inversión",
         "Descuento de la renta sobre el total del IVA del proyecto",
-        "Depreciación acelerada del activo en un plazo de 3 anos",
+        "Depreciación acelerada del activo en un plazo de 3 años",
         "Exención de aranceles",
       ],
     },

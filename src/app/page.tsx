@@ -25,7 +25,7 @@ export default function Page() {
             <Image
               src={logoCliente}
               alt="Logo"
-              className="mx-auto mb-8 w-40 h-auto"
+              className="mx-auto mb-8 w-80 h-auto rounded-full border-2  border-solid border-white bg-white"
             />
 
             {/* Heading */}
@@ -34,7 +34,7 @@ export default function Page() {
             </h1>
 
             {/* Paragraph */}
-            <p className="text-gray-300 mb-6 tracking-tight ">
+            <p className="text-gray-300 mb-6 tracking-tight lg:text-2xl md:text-2xl sd:text-sm ">
               Transformando la energía en soluciones sostenibles para un futuro
               mejor.
             </p>

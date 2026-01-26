@@ -103,7 +103,7 @@ export default function Page() {
     </div>,
     <div key="carousel-3" className="flex flex-col items-center">
       <h2 className="text-4xl font-bold text-white mb-4">Casos de Éxito</h2>
-      <p className="text-white mb-6">
+      <p className="text-white mb-6 lg:text-2xl sm:text-sm">
         Ellos han tomado la decisión de ahorrar en su factura de energía
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl sm:overflow-y-auto sm:h-[550px] ">

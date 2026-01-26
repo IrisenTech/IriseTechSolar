@@ -94,7 +94,7 @@ export default function HomePage() {
                           >
                             Apoyados por:
                           </motion.p>
-                          <motion.img 
+                          {/* <motion.img 
                             src={ApoyadosLogo.src}
                             alt="Logo" 
                             width={700} 
@@ -103,7 +103,14 @@ export default function HomePage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 1.2, ease: "easeOut", delay: 2.5 }}
-                          />
+                          /> */}
+                           <motion.div
+                              className="bg-white/30 rounded-lg p-2 w-[380px] flex items-center justify-center shadow-md"
+                              whileHover={{ scale: 3.15 }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                            >
+                            <Image src={ApoyadosLogo.src} alt="Sellos de sostenibilidad" width={480} height={80} style={{objectFit: 'contain'}} />
+                          </motion.div>
                         </div>
                             
 
