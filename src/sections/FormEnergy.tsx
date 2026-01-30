@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Form,
   FormControl,
@@ -63,7 +63,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 const formSchema = z.object({
-  monthlyBillValue: z.number().positive("El valor debe ser mayor a 0"),
+  monthlyBillValue: z.number().min(0, "El valor no puede ser negativo"),
   unitKwhValue: z.number().positive("El valor debe ser mayor a 0"),
 });
 
@@ -127,6 +127,11 @@ export const FormEnergy = () => {
   const [showAppointmentSection, setShowAppointmentSection] = useState<boolean>(false);
   const [userWantsAppointment, setUserWantsAppointment] = useState<boolean | null>(null);
   
+  // NEW STATE: Store the fixed consumption value after first calculation
+  const [fixedConsumptionKwh, setFixedConsumptionKwh] = useState<number | null>(null);
+  // NEW STATE: Track whether we should use dynamic or fixed consumption
+  const [isCalculationLocked, setIsCalculationLocked] = useState<boolean>(false);
+  
   const DEFAULT_COST = 820;
   const ADDED_PERCENTAGE = 20;
   
@@ -175,6 +180,7 @@ export const FormEnergy = () => {
     }
   }, []);
 
+  // Watch form values for dynamic calculations
   const monthlyBillRaw = form.watch("monthlyBillValue");
   const unitKwhRaw = form.watch("unitKwhValue");
 
@@ -188,14 +194,24 @@ export const FormEnergy = () => {
     return { baseValue, addedAmount };
   };
 
-  const monthlyBill = typeof monthlyBillRaw === "string" ? parseFloat(monthlyBillRaw) : monthlyBillRaw ?? 0;
-  const unitKwh = typeof unitKwhRaw === "string" ? parseFloat(unitKwhRaw) : unitKwhRaw ?? 0;
+  // Convert to numbers and calculate derived values dynamically
+  const monthlyBill = typeof monthlyBillRaw === "string" ? parseFloat(monthlyBillRaw) || 0 : monthlyBillRaw ?? 0;
+  const unitKwh = typeof unitKwhRaw === "string" ? parseFloat(unitKwhRaw) || 0 : unitKwhRaw ?? 0;
   const { baseValue, addedAmount } = calculateBaseAndAdded(monthlyBill);
-  const consumoMes = baseValue && unitKwh ? baseValue / unitKwh : 0;
+  
+  // NEW LOGIC: Use fixed consumption if calculation is locked, otherwise calculate dynamically
+  const consumption = isCalculationLocked && fixedConsumptionKwh 
+    ? fixedConsumptionKwh 
+    : (baseValue && unitKwh ? baseValue / unitKwh : 0);
 
   const onSubmit = (data: FormValues) => {
     const { baseValue, addedAmount } = calculateBaseAndAdded(data.monthlyBillValue);
     const kwh = baseValue / data.unitKwhValue;
+    
+    // Set the fixed consumption value
+    setFixedConsumptionKwh(kwh);
+    // Lock the calculation
+    setIsCalculationLocked(true);
 
     setBillingResult({
       totalBill: data.monthlyBillValue,
@@ -244,6 +260,9 @@ export const FormEnergy = () => {
     setSolarResult(null);
     setShowAppointmentSection(false);
     setUserWantsAppointment(null);
+    // Reset the fixed consumption state
+    setFixedConsumptionKwh(null);
+    setIsCalculationLocked(false);
   };
 
   const handleCloseTable = () => {
@@ -251,6 +270,9 @@ export const FormEnergy = () => {
     setSolarResult(null);
     setShowAppointmentSection(false);
     setUserWantsAppointment(null);
+    // Reset the fixed consumption state
+    setFixedConsumptionKwh(null);
+    setIsCalculationLocked(false);
   };
 
   // Handle file upload
@@ -339,8 +361,8 @@ export const FormEnergy = () => {
           {/* Form Section */}
           <Card className="border-slate-500 bg-slate-900">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-200">
-                <Calculator className="h-5 w-5 text-slate-200" />
+              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-200 sm:text-md text-center">
+                <Calculator className="h-18 w-18 text-slate-200" />
                 Información de Facturación Eléctrica
               </CardTitle>
               {billingResult && (
@@ -349,7 +371,7 @@ export const FormEnergy = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleCloseTable}
-                  className="text-slate-400 hover:text-white hover:bg-slate-800"
+                  className="text-slate-400 hover:text-white hover:bg-slate-800 w-full"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Cerrar tabla
@@ -357,123 +379,185 @@ export const FormEnergy = () => {
               )}
             </CardHeader>
             <CardContent className="space-y-8">
-              <p className="text-white text-sm">
+              <p className="text-white sm:text-xs sm:text-center text-base">
                 Los resultados son estimaciones aproximadas basadas en los datos ingresados y no constituyen una cotización, propuesta comercial ni oferta vinculante. El número de paneles, costos, ahorros y resultados reales pueden variar según condiciones técnicas, regulatorias y de ubicación.
               </p>
 
               {/* Input Form Section */}
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Full width with 2 columns */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* First column: Input with peso sign */}
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+                  {/* Full width with responsive columns */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* First column: Valor Total Factura */}
                     <FormField
                       control={form.control}
                       name="monthlyBillValue"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-300">Valor Total Factura </FormLabel>
+                          <FormLabel className="text-slate-300 text-sm md:text-base">
+                            Valor Total Factura
+                          </FormLabel>
                           <div className="relative">
                             <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                              <DollarSign className="h-4 w-4 text-slate-400" />
+                              <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-slate-400" />
                             </div>
                             <FormControl>
                               <Input
                                 type="number"
                                 step="0.01"
                                 placeholder="Ingrese el valor total de su factura"
-                                className="bg-slate-800 border-slate-600 text-white pl-10 h-12 md:text-2xl  font-bold sm:text-sm"
+                                className="bg-slate-800 border-slate-600 text-white pl-8 md:pl-10 h-10 md:h-12 text-sm md:text-base font-medium md:font-bold"
                                 {...field}
                                 value={field.value === 0 ? "" : field.value}
                                 onChange={(e) => {
                                   const value = e.target.value;
                                   field.onChange(value === "" ? 0 : parseFloat(value));
+                                  // Unlock calculation when monthly bill changes
+                                  if (isCalculationLocked) {
+                                    setIsCalculationLocked(false);
+                                    setFixedConsumptionKwh(null);
+                                  }
                                 }}
                               />
                             </FormControl>
                           </div>
-                          
-                          <FormMessage />
+                          <p className="text-slate-400 text-xs md:text-sm mt-1">
+                            Ingrese valor factura para hacer cálculo
+                          </p>
+                          <FormMessage className="text-xs md:text-sm" />
                         </FormItem>
                       )}
                     />
 
-                    {/* Second column: Base value display */}
+                    {/* Second column: Valor Base (read-only, auto-calculated) */}
                     <div>
-                      <label className="text-slate-300 text-sm font-medium">Valor Base</label>
-                      <div className="relative mt-2">
+                      <label className="text-slate-300 text-sm md:text-base font-medium">
+                        Valor Base
+                      </label>
+                      <div className="relative mt-1 md:mt-2">
                         <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                          <DollarSign className="h-4 w-4 text-slate-400" />
+                          <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-slate-400" />
                         </div>
-                        <div className="h-12 p-3 bg-slate-800 border border-slate-600 rounded-md text-white  pl-10 flex items-center md:text-lg  text-sm">
+                        <div className="h-10 md:h-12 p-2 md:p-3 bg-slate-800 border border-slate-600 rounded-md text-white pl-8 md:pl-10 flex items-center text-sm md:text-base">
                           {monthlyBill > 0 ? formatNumber(baseValue) : "0"}
                         </div>
                       </div>
-                      <p className="text-slate-400 text-sm mt-1">
+                      {/* FIXED: Now shows the actual 20% amount deducted */}
+                      <p className="text-slate-400 text-xs md:text-sm mt-1">
                         {monthlyBill > 0
-                          ? ` $${formatNumber(addedAmount)} - 20% Valor del aporte `
-                          : 'Ingrese factura para ver cálculo'}
+                          ? `-20% del valor total (-$${formatNumber(addedAmount)})`
+                          : '-20% del valor total'}
                       </p>
                     </div>
                   </div>
 
-                  {/* Two columns */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Read-only calculated field with peso sign */}
+                  {/* Two columns - responsive */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Consumo Mes - Now fixed after calculation */}
                     <div>
-                      <label className="text-slate-300 text-sm font-medium">Consumo Mes (kWh)</label>
-                      <div className="relative mt-2 font-bold ">
-                        <Input
-                          type="number"
-                          value={Math.round(consumoMes)} 
-                          readOnly
-                          className="bg-slate-800 border-slate-600 text-lime-300 cursor-not-allowed  h-12 pl-3 md:text-2xl sm:text-md sm:pl-10"
-                        />
+                      <label className="text-slate-300 text-sm md:text-base font-medium">
+                        Consumo Mes (kWh)
+                      </label>
+                      <div className="relative mt-1 md:mt-2">
+                        <div className="flex items-center">
+                          <Input
+                            type="number"
+                            value={consumption > 0 ? Math.round(consumption) : 0}
+                            readOnly
+                            className="bg-slate-800 border-slate-600 text-lime-300 cursor-not-allowed h-10 md:h-12 text-sm md:text-base"
+                          />
+                          {isCalculationLocked && (
+                            <Badge 
+                              className="ml-2 bg-green-600 text-white text-xs"
+                              variant="secondary"
+                            >
+                              FIJADO
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                     
+                      <p className="text-slate-400 text-xs md:text-sm mt-1">
+                        {isCalculationLocked && fixedConsumptionKwh ? (
+                          <span className="text-green-400">
+                            Valor fijado después del cálculo inicial
+                          </span>
+                        ) : monthlyBill > 0 && unitKwh > 0 ? (
+                          `$${formatNumber(baseValue)} ÷ $${formatNumber(unitKwh)} = ${Math.round(consumption)} kWh`
+                        ) : (
+                          'Valor Base ÷ Valor Unitario kWh'
+                        )}
+                      </p>
                     </div>
 
-                    {/* Input field with peso sign */}
+                    {/* Valor Unitario kWh */}
                     <FormField
                       control={form.control}
                       name="unitKwhValue"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-300">Valor Unitario kWh</FormLabel>
+                          <FormLabel className="text-slate-300 text-sm md:text-base">
+                            Valor Unitario kWh
+                          </FormLabel>
                           <div className="relative">
                             <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                              <DollarSign className="h-4 w-4 text-slate-400" />
+                              <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-slate-400" />
                             </div>
                             <FormControl>
                               <Input
                                 type="number"
                                 step="0.01"
                                 placeholder="820"
-                                className="bg-slate-800 border-slate-600 text-lime-200  h-12 md:text-lg sm:text-sm pl-10"
+                                className="bg-slate-800 border-slate-600 text-lime-200 h-10 md:h-12 pl-8 md:pl-10 text-sm md:text-base"
                                 {...field}
+                                value={field.value === 0 ? "" : field.value}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  field.onChange(value === "" ? DEFAULT_COST : parseFloat(value));
+                                  
+                                  // If calculation is locked, recalculate the monthly bill
+                                  if (isCalculationLocked && fixedConsumptionKwh && value) {
+                                    const newUnitKwh = parseFloat(value) || DEFAULT_COST;
+                                    const newBaseValue = fixedConsumptionKwh * newUnitKwh;
+                                    const newMonthlyBill = newBaseValue * (1 + ADDED_PERCENTAGE / 100);
+                                    
+                                    // Update the monthly bill field
+                                    form.setValue("monthlyBillValue", Math.round(newMonthlyBill));
+                                  }
+                                }}
                               />
                             </FormControl>
                           </div>
-                          
-                          <FormMessage />
+                          <p className="text-slate-400 text-xs md:text-sm mt-1">
+                            {isCalculationLocked ? (
+                              <span className="text-amber-400">
+                                Al cambiar este valor, se recalculará el Valor Total Factura
+                              </span>
+                            ) : (
+                              'Costo por cada kWh consumido'
+                            )}
+                          </p>
+                          <FormMessage className="text-xs md:text-sm" />
                         </FormItem>
                       )}
                     />
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex gap-4">
-                    <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 h-12">
-                      <Zap className="mr-2 h-4 w-4" />
-                      Calcular
+                  {/* Action buttons - responsive layout with better scaling */}
+                  <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 md:gap-4 pt-2">
+                    <Button 
+                      type="submit" 
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 h-9 xs:h-10 sm:h-11 md:h-12 text-xs xs:text-sm sm:text-sm md:text-base py-2"
+                    >
+                      <Zap className="mr-2 h-3 w-3 sm:h-3 sm:w-3 md:h-4 md:w-4" />
+                      {isCalculationLocked ? 'Recalcular Todo' : 'Calcular'}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleReset}
-                      className="flex-1 bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:text-white h-12"
+                      className="flex-1 bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:text-white h-9 xs:h-10 sm:h-11 md:h-12 text-xs xs:text-sm sm:text-sm md:text-base py-2 whitespace-nowrap"
                     >
-                      <RefreshCw className="mr-2 h-4 w-4" />
+                      <RefreshCw className="mr-2 h-3 w-3 sm:h-3 sm:w-3 md:h-4 md:w-4" />
                       Limpiar datos
                     </Button>
                   </div>
@@ -551,9 +635,9 @@ export const FormEnergy = () => {
                       {/* Question with checkboxes */}
                       {userWantsAppointment === null && (
                         <div className="mt-8 p-6 border border-slate-600 rounded-lg bg-slate-800">
-                          <h3 className="text-lg font-semibold text-white mb-4">
+                          <h3 className="text-lg font-semibold text-white mb-4 sm:text-sm sm:text-center">
                             ¿Deseas agendar una cita con nuestros especialistas para una evaluación personalizada?
-                          </h3>
+                          </h3><hr></hr>
                           
                           <div className="flex gap-6 mt-4">
                             <div className="flex items-center">
@@ -575,9 +659,9 @@ export const FormEnergy = () => {
                               />
                               <label 
                                 htmlFor="appointment-yes" 
-                                className="ml-2 text-slate-200 cursor-pointer"
+                                className="ml-2 text-slate-200 cursor-pointer sm:text-xs"
                               >
-                                Sí, quiero una cita personalizada
+                                Sí, quiero una cita 
                               </label>
                             </div>
                             
@@ -594,14 +678,14 @@ export const FormEnergy = () => {
                               />
                               <label 
                                 htmlFor="appointment-no" 
-                                className="ml-2 text-slate-200 cursor-pointer"
+                                className="ml-2 text-slate-200 cursor-pointer sm:text-xs"
                               >
                                 No, gracias
                               </label>
                             </div>
                           </div>
                           
-                          <p className="text-sm text-slate-400 mt-4">
+                          <p className="text-sm text-slate-400 mt-4 sm:text-xs">
                             Una cita personalizada te permitirá obtener una evaluación exacta de tu proyecto solar 
                             con nuestros especialistas.
                           </p>
